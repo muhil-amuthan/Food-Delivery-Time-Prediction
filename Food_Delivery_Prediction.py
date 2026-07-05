@@ -1,4 +1,3 @@
-# Food_Delivery_Prediction.py
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -9,6 +8,7 @@ from sklearn.preprocessing import LabelEncoder
 from sklearn.linear_model import LinearRegression
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
 df = pd.read_csv("Food_Delivery_Times.csv")
 
 print("\nFirst 5 rows:")
@@ -20,26 +20,44 @@ print(df.info())
 print("\nMissing Values:")
 print(df.isnull().sum())
 
+
 df.drop_duplicates(inplace=True)
 
 df.drop(columns=["Order_ID"], inplace=True)
 
-# Fill missing values
-for col in df.columns:
-    if pd.api.types.is_numeric_dtype(df[col]):
-        df[col] = df[col].fillna(df[col].median())
-    else:
-        df[col] = df[col].fillna(df[col].mode()[0])
+df["Distance_km"] = df["Distance_km"].fillna(df["Distance_km"].median())
+df["Delivery_Time_min"] = df["Delivery_Time_min"].fillna(df["Delivery_Time_min"].median())
+df["Preparation_Time_min"] = df["Preparation_Time_min"].fillna(df["Preparation_Time_min"].median())
+
+# Fill missing text with the most common value (mode)
+df["Weather"] = df["Weather"].fillna(df["Weather"].mode()[0])
+df["Traffic_Level"] = df["Traffic_Level"].fillna(df["Traffic_Level"].mode()[0])
+df["Vehicle_Type"] = df["Vehicle_Type"].fillna(df["Vehicle_Type"].mode()[0])
+df["Time_of_Day"] = df["Time_of_Day"].fillna(df["Time_of_Day"].mode()[0])
+
 
 encoders = {}
-for col in df.select_dtypes(exclude="number").columns:
-    le = LabelEncoder()
-    df[col] = le.fit_transform(df[col])
-    encoders[col] = le
+le_weather = LabelEncoder()
+df["Weather"] = le_weather.fit_transform(df["Weather"])
+encoders["Weather"] = le_weather
+
+le_traffic = LabelEncoder()
+df["Traffic_Level"] = le_traffic.fit_transform(df["Traffic_Level"])
+encoders["Traffic_Level"] = le_traffic
+
+le_vehicle = LabelEncoder()
+df["Vehicle_Type"] = le_vehicle.fit_transform(df["Vehicle_Type"])
+encoders["Vehicle_Type"] = le_vehicle
+
+le_time = LabelEncoder()
+df["Time_of_Day"] = le_time.fit_transform(df["Time_of_Day"])
+encoders["Time_of_Day"] = le_time
 
 print("\nEncoded category mappings:")
-for col, le in encoders.items():
-    print(f"  {col}: {dict(zip(le.classes_, le.transform(le.classes_)))}")
+print("  Weather:", dict(zip(le_weather.classes_, le_weather.transform(le_weather.classes_))))
+print("  Traffic_Level:", dict(zip(le_traffic.classes_, le_traffic.transform(le_traffic.classes_))))
+print("  Vehicle_Type:", dict(zip(le_vehicle.classes_, le_vehicle.transform(le_vehicle.classes_))))
+print("  Time_of_Day:", dict(zip(le_time.classes_, le_time.transform(le_time.classes_))))
 
 print("\nCorrelation:")
 print(df.corr(numeric_only=True))
@@ -51,13 +69,30 @@ plt.xlabel("Minutes")
 plt.ylabel("Count")
 plt.show()
 
-for c in ["Weather", "Traffic_Level", "Vehicle_Type", "Time_of_Day"]:
-    if c in df.columns:
-        plt.figure(figsize=(6, 4))
-        df.groupby(c)["Delivery_Time_min"].mean().plot(kind="bar")
-        plt.title(f"Average Delivery Time by {c}")
-        plt.ylabel("Minutes")
-        plt.show()
+plt.figure(figsize=(6, 4))
+df.groupby("Weather")["Delivery_Time_min"].mean().plot(kind="bar")
+plt.title("Average Delivery Time by Weather")
+plt.ylabel("Minutes")
+plt.show()
+
+plt.figure(figsize=(6, 4))
+df.groupby("Traffic_Level")["Delivery_Time_min"].mean().plot(kind="bar")
+plt.title("Average Delivery Time by Traffic Level")
+plt.ylabel("Minutes")
+plt.show()
+
+plt.figure(figsize=(6, 4))
+df.groupby("Vehicle_Type")["Delivery_Time_min"].mean().plot(kind="bar")
+plt.title("Average Delivery Time by Vehicle Type")
+plt.ylabel("Minutes")
+plt.show()
+
+plt.figure(figsize=(6, 4))
+df.groupby("Time_of_Day")["Delivery_Time_min"].mean().plot(kind="bar")
+plt.title("Average Delivery Time by Time of Day")
+plt.ylabel("Minutes")
+plt.show()
+
 X = df.drop("Delivery_Time_min", axis=1)
 y = df["Delivery_Time_min"]
 
@@ -107,7 +142,7 @@ best_model = lr if best_name == "Linear Regression" else dt
 print("\nBest Model:", best_name)
 
 joblib.dump(best_model, "delivery_model.pkl")
-print("\n💾 Saved: delivery_model.pkl")
+print("\nSaved: delivery_model.pkl")
 
 joblib.dump(encoders, "encoders.pkl")
-print("💾 Saved: encoders.pkl")
+print("Saved: encoders.pkl")
