@@ -2,19 +2,12 @@ import streamlit as st
 import pandas as pd
 import joblib
 import os
-
-# ============================================================
-# PAGE CONFIG (must be first Streamlit command)
-# ============================================================
 st.set_page_config(
     page_title="Food Delivery Time Prediction",
     page_icon="🍕",
-    layout="centered"
-)
+    layout="centered")
 
-# ============================================================
-# LOAD MODEL & ENCODERS
-# ============================================================
+
 MODEL_PATH = "delivery_model.pkl"
 ENCODERS_PATH = "encoders.pkl"
 
@@ -48,13 +41,9 @@ if error_msg:
 
 st.success("✅ Model and encoders loaded successfully!")
 
-# ============================================================
-# UI
-# ============================================================
 st.title("🍔 Food Delivery Time Prediction")
 st.write("Enter the delivery details below to predict the delivery time.")
 
-# --- Inputs (NO Order_ID — it was dropped during training) ---
 col1, col2 = st.columns(2)
 
 with col1:
@@ -68,9 +57,6 @@ with col2:
     prep_time = st.number_input("Preparation Time (minutes)", min_value=1, value=15)
     experience = st.number_input("Courier Experience (Years)", min_value=0, value=2)
 
-# ============================================================
-# PREDICTION
-# ============================================================
 if st.button("Predict Delivery Time", type="primary"):
     # Build input DataFrame with EXACT column names from training
     input_data = pd.DataFrame({
@@ -83,17 +69,14 @@ if st.button("Predict Delivery Time", type="primary"):
         "Courier_Experience_yrs": [experience]
     })
     
-    # Apply the SAME LabelEncoders used during training
     for col, le in encoders.items():
         if col in input_data.columns:
-            # Handle unseen categories gracefully
             try:
                 input_data[col] = le.transform(input_data[col])
             except ValueError as e:
                 st.error(f"❌ Invalid value for '{col}': {input_data[col].values[0]!r}")
                 st.stop()
     
-    # Ensure column order matches training exactly
     feature_columns = [
         "Distance_km", "Weather", "Traffic_Level", "Time_of_Day",
         "Vehicle_Type", "Preparation_Time_min", "Courier_Experience_yrs"
